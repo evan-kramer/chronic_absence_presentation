@@ -1,6 +1,6 @@
 # CCSSO Chronic Absenteeism Presentation
 # Evan Kramer
-# 3/7/2019
+# 3/12/2019
 
 options(java.parameters = "-Xmx16G")
 library(tidyverse)
@@ -11,7 +11,7 @@ library(rgdal)
 setwd("N:/ORP_accountability/")
 
 # Switches 
-data = T
+data = F
 analysis = F
 
 # Data
