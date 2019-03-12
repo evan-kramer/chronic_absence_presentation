@@ -381,6 +381,114 @@ if(analysis) {
     ggtitle(str_c("School-Level Proficiency as a Function of Chronic Absenteeism Rates, ", year(today()) - 1))
   ggsave("projects/Evan/Projects/20190327 Chronic Absenteeism Presentation/Visualizations/absentee_rate_proficiency.png", 
          width = 9.17, height = 4.95, units = "in")
+  
+  # Asthma
+  ggplot(
+    inner_join(
+      transmute(survey, system = district_number, n_students_with_asthma),
+      filter(district2, subgroup == "All Students" & grade_band == "All Grades"),
+      by = "system"
+    ),
+    aes(
+      x = round(100 * n_students_with_asthma / n_students, 1), 
+      y = pct_chronically_absent
+    )
+  ) + 
+    geom_point(alpha = 0.2) + 
+    theme_bw() + 
+    scale_y_continuous(name = "Percent Chronically Absent") + 
+    scale_x_continuous(name = "Percent of Students with Asthma", limits = c(0, 100)) +
+    ggtitle(str_c("Absenteeism Rates as a Function of Students with Asthma, ", year(today()) - 1))
+  ggsave("projects/Evan/Projects/20190327 Chronic Absenteeism Presentation/Visualizations/absentee_rate_asthma.png", 
+         width = 9.17, height = 4.95, units = "in")
+  
+  # Return to class rates
+  ggplot(
+    inner_join(
+      transmute(survey, system = district_number, return_to_class_rate),
+      filter(district2, subgroup == "All Students" & grade_band == "All Grades"),
+      by = "system"
+    ),
+    aes(
+      x = return_to_class_rate,
+      y = pct_chronically_absent
+    )
+  ) + 
+    geom_point(alpha = 0.2) + 
+    theme_bw() + 
+    scale_y_continuous(name = "Percent Chronically Absent") + 
+    scale_x_continuous(name = "Return to Class Rate", limits = c(0, 100)) +
+    ggtitle(str_c("Absenteeism Rates as a Function of Return-to-Class Rates, ", year(today()) - 1))
+  ggsave("projects/Evan/Projects/20190327 Chronic Absenteeism Presentation/Visualizations/absentee_rate_return_to_class.png", 
+         width = 9.17, height = 4.95, units = "in")
+  
+  # Percent of schools with full-time nurse
+  ggplot(
+    group_by(scores, system) %>% 
+      summarize(n_schools = n_distinct(school)) %>% 
+      ungroup() %>% 
+      inner_join(
+        transmute(survey, system = district_number, n_schools_with_ft_nurse),
+        by = "system") %>% 
+      inner_join(
+        filter(district2, subgroup == "All Students" & grade_band == "All Grades") %>% 
+          transmute(system, n_students, pct_chronically_absent),
+        by = "system"
+      ),
+    aes(
+      x = pmin(100, round(100 * n_schools_with_ft_nurse / n_schools, 1)),
+      y = pct_chronically_absent
+    )
+  ) + 
+    geom_point(alpha = 0.2) + 
+    theme_bw() + 
+    scale_y_continuous(name = "Percent Chronically Absent") + 
+    scale_x_continuous(name = "Percent of Schools with Full-Time Nurses", limits = c(0, 100)) +
+    ggtitle(str_c("Absenteeism Rates as a Function of Nurse Availability, ", year(today()) - 1))
+  ggsave("projects/Evan/Projects/20190327 Chronic Absenteeism Presentation/Visualizations/absentee_rate_nurse_prevalence.png", 
+         width = 9.17, height = 4.95, units = "in")
+  
+  # Severe allergies
+  ggplot(
+    inner_join(
+      transmute(survey, system = district_number, n_students_with_severe_allergies),
+    filter(district2, subgroup == "All Students" & grade_band == "All Grades") %>% 
+      transmute(system, n_students, pct_chronically_absent),
+    by = "system"
+  ),
+    aes(
+      x = pmin(100, round(100 * n_students_with_severe_allergies / n_students, 1)),
+      y = pct_chronically_absent
+    )
+  ) + 
+    geom_point(alpha = 0.2) + 
+    theme_bw() + 
+    scale_y_continuous(name = "Percent Chronically Absent") + 
+    scale_x_continuous(name = "Percent of Students with Severe Allergies", limits = c(0, 100)) +
+    ggtitle(str_c("Absenteeism Rates as a Function of Severe Allergy Incidence, ", year(today()) - 1))
+  ggsave("projects/Evan/Projects/20190327 Chronic Absenteeism Presentation/Visualizations/absentee_rate_severe_allergies.png", 
+         width = 9.17, height = 4.95, units = "in")
+  
+  # Total chronic health conditions
+  ggplot(
+    inner_join(
+      transmute(survey, system = district_number, n_chronic_health_condition),
+      filter(district2, subgroup == "All Students" & grade_band == "All Grades") %>% 
+        transmute(system, n_students, pct_chronically_absent),
+      by = "system"
+    ),
+    aes(
+      x = pmin(100, round(100 * n_chronic_health_condition / n_students, 1)),
+      y = pct_chronically_absent
+    )
+  ) + 
+    geom_point(alpha = 0.2) + 
+    theme_bw() + 
+    scale_y_continuous(name = "Percent Chronically Absent") + 
+    scale_x_continuous(name = "Percent of Students with Chronic Health Conditions", limits = c(0, 100)) +
+    ggtitle(str_c("Absenteeism Rates as a Function of Chronic Health Conditions, ", year(today()) - 1))
+  ggsave("projects/Evan/Projects/20190327 Chronic Absenteeism Presentation/Visualizations/absentee_rate_chronic_conditions.png", 
+         width = 9.17, height = 4.95, units = "in")
 } else {
   rm(analysis)
 }
