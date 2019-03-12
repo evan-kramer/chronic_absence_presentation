@@ -11,7 +11,7 @@ library(rgdal)
 setwd("N:/ORP_accountability/")
 
 # Switches 
-data = F
+data = T
 analysis = F
 
 # Data
@@ -94,6 +94,9 @@ if(data) {
         transmute(student_key, BHN = pmax(Black, Hispanic, Native), ED = ed, SWD = swd, EL = pmax(ell, t1t4),
                   Hispanic, Black, Native, HPI, Asian, White), by = "student_key"
     )
+  survey = readxl::read_excel("C:/Users/CA19130/Downloads/Health Services Survey_Totals.xlsx", n_max = 145) %>% 
+    select(district_number, district_name = FirstName, starts_with("n_")) %>% 
+    mutate(return_to_class_rate = round(100 * n_return_to_class / n_total_clinic_visits, 1))
 } else {
   rm(data)
 }
@@ -151,6 +154,22 @@ if(analysis) {
     ggtitle(str_c("Number of Absences by Grade and Type, ", year(today()) - 1))
   ggsave("projects/Evan/Projects/20190327 Chronic Absenteeism Presentation/Visualizations/absences_by_grade_and_type.png",
          units = "in", width = 9.17, height = 4.95)
+  
+  # Separate cut scores by grade
+  ggplot(filter(scores, indicator == "Chronic Absenteeism" & subgroup == "All Students" & designation_ineligible == 0) %>% 
+           arrange(metric) %>%
+           mutate(rank = row_number()),
+         aes(x = rank, y = metric, fill = pool)) + 
+    geom_bar(stat = "identity") + 
+    geom_hline(yintercept = state$pct_10_pct_or_more[state$subgroup == "All Students" & state$grade == "All Grades"],
+               col = "red") + 
+    scale_x_continuous(name = "Each bar represents a school.", labels = NULL) +
+    scale_y_continuous(name = "Percent Chronically Absent") +
+    scale_fill_discrete(name = "Pool") + 
+    theme_bw() + 
+    ggtitle(str_c("Absenteeism Rates by School, ", year(today()) - 1))
+  ggsave("projects/Evan/Projects/20190327 Chronic Absenteeism Presentation/Visualizations/state_absentee_rates.png", 
+         width = 9.17, height = 4.95, units = "in")
   
   # Do excused/unexcused rates vary by demographics?
   temp = tibble()
@@ -322,7 +341,46 @@ if(analysis) {
     ggtitle(str_c("Chronic Absenteeism Rates, ", unique(district2$year))) + 
     theme(plot.title = element_text(hjust = 0.5))
   ggsave("projects/Evan/Projects/20190327 Chronic Absenteeism Presentation/Visualizations/absenteeism_geography_district.png",
-         units = "in", width = 9.17, height = 4.95)    
+         units = "in", width = 9.17, height = 4.95)
+  
+  # Absenteeism vs. poverty
+  ggplot(filter(district2, grade_band == "All Grades" & subgroup == "All Students") %>% 
+           left_join(group_by(student, system, ED) %>% 
+                       summarize(n = n_distinct(student_id)) %>% 
+                       ungroup() %>% 
+                       group_by(system) %>%
+                       mutate(pct_ed = round(100 * n / sum(n, na.rm = T), 1)) %>% 
+                       filter(ED == 1) %>% 
+                       ungroup(), by = "system"),
+         aes(x = pct_ed, y = pct_chronically_absent, size = n)) + 
+    geom_point(alpha = 0.3) + 
+    # geom_smooth(method = "lm", se = F) +
+    theme_bw() + 
+    scale_x_continuous(name = "Percent of Students in Poverty") + 
+    scale_y_continuous(name = "Percent Chronically Absent") +
+    scale_size_continuous(name = "Number of Students") + 
+    ggtitle(str_c("District Chronic Absenteeism Rates as a Function of Poverty, ", year(today()) - 1))
+  ggsave("projects/Evan/Projects/20190327 Chronic Absenteeism Presentation/Visualizations/absentee_rate_poverty.png", 
+         width = 9.17, height = 4.95, units = "in")
+  
+  # Absenteeism vs. proficiency
+  ggplot(
+    inner_join(
+      filter(scores, subgroup == "All Students" & designation_ineligible == 0 & indicator == "Chronic Absenteeism") %>% 
+        transmute(system, school, pool, n_count_abs = n_count, metric_abs = metric),
+      filter(scores, subgroup == "All Students" & designation_ineligible == 0 & indicator == "Achievement") %>% 
+        transmute(system, school, pool, n_count_ach = n_count, metric_ach = metric),
+      by = c("system", "school", "pool")
+    ),
+    aes(x = metric_abs, y = metric_ach)
+  ) +
+    geom_point(alpha = 0.2) + 
+    theme_bw() + 
+    scale_y_continuous(name = "Percent Proficient") + 
+    scale_x_continuous(name = "Percent Chronically Absent") +
+    ggtitle(str_c("School-Level Proficiency as a Function of Chronic Absenteeism Rates, ", year(today()) - 1))
+  ggsave("projects/Evan/Projects/20190327 Chronic Absenteeism Presentation/Visualizations/absentee_rate_proficiency.png", 
+         width = 9.17, height = 4.95, units = "in")
 } else {
   rm(analysis)
 }
