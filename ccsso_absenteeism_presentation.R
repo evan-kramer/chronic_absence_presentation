@@ -11,7 +11,7 @@ library(rgdal)
 setwd("N:/ORP_accountability/")
 
 # Switches 
-data = F
+data = T
 analysis = F
 
 # Data
@@ -248,6 +248,26 @@ if(analysis) {
     theme_bw() 
   ggsave("projects/Evan/Projects/20190327 Chronic Absenteeism Presentation/Visualizations/absentee_rates_by_enrollment_length.png",
          units = "in", width = 9.17, height = 4.95)    
+  
+  # Just two enrollment bins? 
+  mutate(temp, enrolled_bin = case_when(
+    pct_enrolled < 50 ~ "Less than half the year",
+    pct_enrolled >= 50 ~ "At least half the year"
+  )) %>% 
+    group_by(enrolled_bin) %>% 
+    summarize(pct_chronically_absent = round(100 * sum(absentee_rate >= 10, na.rm = T) / sum(!is.na(absentee_rate)), 1)) %>% 
+    ungroup() %>%
+    filter(!is.na(enrolled_bin)) %>%
+    ggplot(aes(x = enrolled_bin,
+               y = pct_chronically_absent)) + 
+    geom_bar(stat = "identity") + 
+    scale_x_discrete(name = "Proportion of Year Enrolled") + 
+    scale_y_continuous(name = "Percent of Students Chronically Absent", limits = c(0, 40)) + 
+    coord_flip() + 
+    ggtitle(str_c("Absenteeism Rates by Enrollment Length, ", year(today()) - 1)) + 
+    theme_bw() 
+  ggsave("projects/Evan/Projects/20190327 Chronic Absenteeism Presentation/Visualizations/absentee_rates_by_enrollment_length_2bin.png",
+         units = "in", width = 9.17, height = 4.95)
   
   # Students enrolled in multiple districts
   full_join(
