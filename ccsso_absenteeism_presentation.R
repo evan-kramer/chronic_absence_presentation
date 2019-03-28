@@ -11,7 +11,7 @@ library(rgdal)
 setwd("N:/ORP_accountability/")
 
 # Switches 
-data = T
+data = F
 analysis = F
 
 # Data
@@ -363,6 +363,19 @@ if(analysis) {
   ggsave("projects/Evan/Projects/20190327 Chronic Absenteeism Presentation/Visualizations/absenteeism_geography_district.png",
          units = "in", width = 9.17, height = 4.95)
   
+  # Predictive model
+  model = lm(
+    pct_chronically_absent ~ pct_ed, 
+    data = filter(district2, grade_band == "All Grades" & subgroup == "All Students") %>% 
+      left_join(group_by(student, system, ED) %>% 
+                  summarize(n = n_distinct(student_id)) %>% 
+                  ungroup() %>% 
+                  group_by(system) %>%
+                  mutate(pct_ed = round(100 * n / sum(n, na.rm = T), 1)) %>% 
+                  filter(ED == 1) %>% 
+                  ungroup(), by = "system")
+  )
+  
   # Absenteeism vs. poverty
   ggplot(filter(district2, grade_band == "All Grades" & subgroup == "All Students") %>% 
            left_join(group_by(student, system, ED) %>% 
@@ -371,9 +384,14 @@ if(analysis) {
                        group_by(system) %>%
                        mutate(pct_ed = round(100 * n / sum(n, na.rm = T), 1)) %>% 
                        filter(ED == 1) %>% 
-                       ungroup(), by = "system"),
+                       ungroup(), by = "system") %>% 
+           mutate(residual = model$residuals,
+                  # system_name = # outliers
+                  system_name = ifelse(percent_rank(abs(model$residuals)) >= .85, system_name, NA)),
          aes(x = pct_ed, y = pct_chronically_absent, size = n)) + 
-    geom_point(alpha = 0.3) + 
+    geom_point(alpha = 0.3) +
+    # geom_point(aes(alpha = !is.na(system_name))) + 
+    # geom_label(aes(label = system_name)) +
     # geom_smooth(method = "lm", se = F) +
     theme_bw() + 
     scale_x_continuous(name = "Percent of Students in Poverty") + 
@@ -382,6 +400,8 @@ if(analysis) {
     ggtitle(str_c("District Chronic Absenteeism Rates as a Function of Poverty, ", year(today()) - 1))
   ggsave("projects/Evan/Projects/20190327 Chronic Absenteeism Presentation/Visualizations/absentee_rate_poverty.png", 
          width = 9.17, height = 4.95, units = "in")
+  
+  # Find outliers
   
   # Absenteeism vs. proficiency
   ggplot(
@@ -509,6 +529,9 @@ if(analysis) {
     ggtitle(str_c("Absenteeism Rates as a Function of Chronic Health Conditions, ", year(today()) - 1))
   ggsave("projects/Evan/Projects/20190327 Chronic Absenteeism Presentation/Visualizations/absentee_rate_chronic_conditions.png", 
          width = 9.17, height = 4.95, units = "in")
+  
+  # Salient features, proportionality of students enrolled less than 50%?
+  
 } else {
   rm(analysis)
 }
